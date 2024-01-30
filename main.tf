@@ -1,9 +1,9 @@
 resource "juju_application" "amf" {
-  name = "amf"
+  name  = "amf"
   model = var.model_name
 
   charm {
-    name = "sdcore-amf-k8s"
+    name    = "sdcore-amf-k8s"
     channel = var.channel
   }
 

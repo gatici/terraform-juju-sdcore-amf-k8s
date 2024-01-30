@@ -4,7 +4,7 @@ This SD-Core AMF K8s Terraform module aims to deploy the [sdcore-amf-k8s charm](
 
 ## Getting Started
 
-### Install requirements
+### Prerequisites
 
 The following software and tools needs to be installed and should be running in the local environment.
 
@@ -12,42 +12,20 @@ The following software and tools needs to be installed and should be running in 
 - `juju 3.x`
 - `terrafom`
 
-Install Microk8s:
+### Deploy sdcore-amf-k8s using Terraform
+
+Make sure that `storage`, `dns` and `metallb` plugins are enabled for Microk8s:
 
 ```console
-sudo snap install microk8s --channel=1.27-strict/stable
-sudo usermod -a -G snap_microk8s $USER
-newgrp snap_microk8s
-```
-
-Enable `dns`, `storage` and `metallb` plugins for Microk8s.
-
-```console
-sudo microk8s enable hostpath-storage multus
+sudo microk8s enable hostpath-storage dns
 sudo microk8s enable metallb:10.0.0.2-10.0.0.2
 ```
 
-Install Juju:
+Add a Juju model:
 
 ```console
-sudo snap install juju --channel=3.1/stable
+juju add model <model-name>
 ```
-
-Install Terraform:
-
-```console
-sudo snap install --classic terraform
-```
-
-### Bootstrap the Juju using Microk8s and create a model to deploy Terraform module
-
-Bootstrap Juju Controller:
-
-```console
-juju bootstrap microk8s
-```
-
-### Deploy Mongodb-k8s using Terraform
 
 Initialise the provider:
 
@@ -57,27 +35,25 @@ terraform init
 
 Customize the configuration inputs under `terraform.tfvars` file according to requirement.
 
-Sample contents of `terraform.tfvars` file:
+Replace the `model-name` value in the `terraform.tfvars` file:
 
 ```yaml
-model_name ="test"
+model_name =<your model-name>
+db_application_name =<your mongodb app name>
+certs_application_name =<your self-signed-certificates app name>
+nrf_application_name =<your nrf app name>
 ```
 
-Run Terraform plan by providing a var-file:
+Run Terraform Plan by providing var-file:
 
 ```console
 terraform plan -var-file="terraform.tfvars" 
 ```
 
-Deploy the resources, skip the approval.
+Deploy the resources, skip the approval:
 
 ```console
 terraform apply -auto-approve 
-```
-
-```{note}
-After running above command, if you get the error below, run the `terraform apply -auto-approve` again. 
-`Unable to create application, got error: model "<model_name>" not found`
 ```
 
 ### Check the Output
@@ -88,36 +64,9 @@ Run `juju switch <juju model>` to switch to the target Juju model and observe th
 juju status --relations
 ```
 
-The output should be similar to the following:
-
-```console
-Model  Controller          Cloud/Region        Version  SLA          Timestamp
-test   microk8s-localhost  microk8s/localhost  3.1.7    unsupported  13:56:43+03:00
-
-App                       Version  Status  Scale  Charm                     Channel   Rev  Address         Exposed  Message
-amf                                active      1  sdcore-amf-k8s            1.3/edge   17  10.152.183.163  no       
-mongodb-k8s                        active      1  mongodb-k8s               6/beta     38  10.152.183.133  no       
-nrf                                active      1  sdcore-nrf-k8s            1.3/edge   18  10.152.183.192  no       
-self-signed-certificates           active      1  self-signed-certificates  beta       57  10.152.183.179  no       
-
-Unit                         Workload  Agent  Address      Ports  Message
-amf/0*                       active    idle   10.1.146.2          
-mongodb-k8s/0*               active    idle   10.1.146.60         
-nrf/0*                       active    idle   10.1.146.6          
-self-signed-certificates/0*  active    idle   10.1.146.9          
-
-Integration provider                   Requirer                    Interface         Type     Message
-mongodb-k8s:database                   amf:database                mongodb_client    regular  
-mongodb-k8s:database                   nrf:database                mongodb_client    regular  
-mongodb-k8s:database-peers             mongodb-k8s:database-peers  mongodb-peers     peer     
-nrf:fiveg-nrf                          amf:fiveg-nrf               fiveg_nrf         regular  
-self-signed-certificates:certificates  amf:certificates            tls-certificates  regular  
-self-signed-certificates:certificates  nrf:certificates            tls-certificates  regular 
-```
-
 ### Clean up 
 
-Remove the applications:
+Remove the application:
 
 ```console
 terraform destroy -auto-approve
